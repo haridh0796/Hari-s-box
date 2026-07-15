@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Essentials Dashboard</title>
+<style>
+  :root { color-scheme: light dark; }
+  .app {
+    color-scheme: light;
+    --page:           #f9f9f7;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --series-2:       #008300;
+    --delta-bad:      #d03b3b;
+    --delta-good:     #006300;
+    --status-good:    #0ca30c;
+    --status-warning: #fab219;
+    --status-critical:#d03b3b;
+    --wash:           rgba(42,120,214,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .app {
+      color-scheme: dark;
+      --page:           #0d0d0d;
+      --surface-1:      #1a1a19;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --series-2:       #008300;
+      --delta-bad:      #e66767;
+      --delta-good:     #0ca30c;
+      --wash:           rgba(57,135,229,0.12);
+    }
+  }
+  :root[data-theme="dark"] .app {
+    color-scheme: dark;
+    --page:           #0d0d0d;
+    --surface-1:      #1a1a19;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-2:       #008300;
+    --delta-bad:      #e66767;
+    --delta-good:     #0ca30c;
+    --wash:           rgba(57,135,229,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  body { background: transparent; }
+  .app {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 24px clamp(12px, 4vw, 40px) 64px;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  header.masthead { max-width: 1080px; margin: 0 auto 20px; }
+  .masthead h1 { font-size: 21px; font-weight: 650; letter-spacing: -0.01em; }
+  .masthead .sub { color: var(--text-muted); font-size: 12.5px; margin-top: 2px; }
+
+  nav.tabs { max-width: 1080px; margin: 0 auto 20px; display: flex; gap: 4px; border-bottom: 1px solid var(--grid); }
+  nav.tabs button {
+    appearance: none; background: none; border: none; cursor: pointer;
+    font: inherit; font-weight: 550; color: var(--text-secondary);
+    padding: 9px 14px 11px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  nav.tabs button:hover { color: var(--text-primary); }
+  nav.tabs button[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--series-1); }
+
+  main { max-width: 1080px; margin: 0 auto; }
+  section.tab { display: none; }
+  section.tab.active { display: block; }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px 12px;
+  }
+  .tile .label { color: var(--text-muted); font-size: 12px; }
+  .tile .value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+  .tile .delta { font-size: 12px; margin-top: 2px; font-weight: 550; }
+  .tile .delta.bad  { color: var(--delta-bad); }
+  .tile .delta.good { color: var(--delta-good); }
+  .tile .delta.flat { color: var(--text-muted); }
+
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; margin-bottom: 16px; position: relative;
+  }
+  .card h2 { font-size: 14px; font-weight: 650; }
+  .card .card-sub { color: var(--text-muted); font-size: 12px; margin-top: 1px; margin-bottom: 12px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  svg text { font-family: inherit; }
+  .chart-wrap { overflow-x: auto; }
+
+  .viz-tooltip {
+    position: absolute; pointer-events: none; z-index: 5; display: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.14); padding: 8px 11px; font-size: 12px;
+    min-width: 130px; max-width: 260px;
+  }
+  .viz-tooltip .tt-title { color: var(--text-muted); font-size: 11px; margin-bottom: 3px; }
+  .viz-tooltip .tt-row { display: flex; align-items: baseline; gap: 8px; }
+  .viz-tooltip .tt-val { font-weight: 650; font-size: 14px; }
+  .viz-tooltip .tt-lbl { color: var(--text-secondary); }
+  .viz-tooltip .tt-note { color: var(--text-muted); margin-top: 3px; font-size: 11px; }
+
+  ul.insights { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  ul.insights li { display: flex; gap: 10px; align-items: baseline; }
+  ul.insights .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--series-1); position: relative; top: -1px; }
+  ul.insights .impact { font-weight: 650; }
+
+  .rec-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .rec-row select {
+    font: inherit; color: var(--text-primary); background: var(--surface-1);
+    border: 1px solid var(--baseline); border-radius: 8px; padding: 7px 10px;
+  }
+  .rec-result { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--wash); }
+  .rec-result .rec-card-name { font-weight: 650; }
+  .rec-result .rec-rate { color: var(--text-secondary); }
+  .rec-runners { color: var(--text-muted); font-size: 12px; margin-top: 6px; }
+
+  .bill-row {
+    display: flex; align-items: center; gap: 12px; padding: 10px 4px;
+    border-bottom: 1px solid var(--grid);
+  }
+  .bill-row:last-child { border-bottom: none; }
+  .bill-when { flex: none; width: 86px; color: var(--text-secondary); font-size: 12.5px; }
+  .bill-name { flex: 1 1 auto; min-width: 0; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bill-card-chip { flex: none; color: var(--text-muted); font-size: 12px; border: 1px solid var(--grid); border-radius: 999px; padding: 2px 9px; }
+  .bill-amount { flex: none; width: 88px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .badge {
+    flex: none; display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 3px 10px;
+    color: var(--text-primary); background: var(--surface-1); border: 1px solid var(--border);
+  }
+  .badge .b-ic { font-size: 10px; line-height: 1; }
+  .badge.critical .b-ic { color: var(--status-critical); }
+  .badge.warning  .b-ic { color: var(--status-warning); }
+  .badge.good     .b-ic { color: var(--status-good); }
+
+  table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.data th { text-align: left; color: var(--text-muted); font-weight: 550; font-size: 12px; padding: 6px 10px; border-bottom: 1px solid var(--baseline); }
+  table.data td { padding: 7px 10px; border-bottom: 1px solid var(--grid); }
+  table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-scroll { overflow-x: auto; }
+
+  .mail-item { padding: 12px 4px; border-bottom: 1px solid var(--grid); }
+  .mail-item:last-child { border-bottom: none; }
+  .mail-top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .mail-subject { font-weight: 600; }
+  .mail-meta { color: var(--text-muted); font-size: 12px; }
+  .mail-reason { display: inline-block; font-size: 11px; font-weight: 600; color: var(--text-secondary); border: 1px solid var(--grid); border-radius: 999px; padding: 2px 8px; }
+  .mail-actions { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--text-secondary); }
+  .mail-actions .act-status { color: var(--text-muted); }
+  .mail-actions .act-status.pushed { color: var(--delta-good); font-weight: 600; }
+
+  .empty {
+    padding: 28px 16px; text-align: center; color: var(--text-muted); font-size: 13px;
+    border: 1px dashed var(--baseline); border-radius: 10px;
+  }
+  .empty b { color: var(--text-secondary); }
+  .footnote { max-width: 1080px; margin: 28px auto 0; color: var(--text-muted); font-size: 11.5px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="masthead">
+    <h1>Essentials Dashboard</h1>
+    <div class="sub" id="generated-at"></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="finance">Financial Advisor</button>
+    <button role="tab" aria-selected="false" data-tab="bills">Bills &amp; Subscriptions</button>
+    <button role="tab" aria-selected="false" data-tab="mail">Mail Triage</button>
+  </nav>
+
+  <main>
+    <section class="tab active" id="tab-finance"></section>
+    <section class="tab" id="tab-bills"></section>
+    <section class="tab" id="tab-mail"></section>
+  </main>
+
+  <p class="footnote">Figures and card suggestions are informational summaries of your own data — not financial advice. Statement data is as of the last upload; mail and calendar reflect the last live refresh.</p>
+</div>
+
+<script>
+const DATA = {"generatedAt": "2026-07-15T02:52:24", "finance": {"months": [{"month": "2026-04", "total": 901.8, "txnCount": 16, "topCategory": {"name": "travel", "amount": 286.4}, "categories": [{"name": "travel", "amount": 286.4, "count": 1}, {"name": "groceries", "amount": 220.05, "count": 3}, {"name": "utilities", "amount": 162.13, "count": 2}, {"name": "dining", "amount": 60.95, "count": 4}, {"name": "shopping", "amount": 54.99, "count": 1}, {"name": "gas", "amount": 48.3, "count": 1}, {"name": "entertainment", "amount": 27.48, "count": 2}, {"name": "health", "amount": 23.1, "count": 1}, {"name": "transit", "amount": 18.4, "count": 1}]}, {"month": "2026-05", "total": 1055.96, "txnCount": 18, "topCategory": {"name": "groceries", "amount": 219.02}, "categories": [{"name": "groceries", "amount": 219.02, "count": 3}, {"name": "travel", "amount": 214.8, "count": 1}, {"name": "shopping", "amount": 214.34, "count": 2}, {"name": "utilities", "amount": 158.6, "count": 2}, {"name": "dining", "amount": 99.35, "count": 5}, {"name": "gas", "amount": 51.22, "count": 1}, {"name": "health", "amount": 49.0, "count": 1}, {"name": "entertainment", "amount": 27.48, "count": 2}, {"name": "transit", "amount": 22.15, "count": 1}]}, {"month": "2026-06", "total": 969.26, "txnCount": 20, "topCategory": {"name": "groceries", "amount": 244.6}, "categories": [{"name": "groceries", "amount": 244.6, "count": 3}, {"name": "shopping", "amount": 232.59, "count": 2}, {"name": "dining", "amount": 171.95, "count": 7}, {"name": "utilities", "amount": 160.44, "count": 2}, {"name": "health", "amount": 67.45, "count": 2}, {"name": "gas", "amount": 47.85, "count": 1}, {"name": "entertainment", "amount": 27.48, "count": 2}, {"name": "transit", "amount": 16.9, "count": 1}]}], "avgMonthly": 975.67, "uncategorized": 0, "insights": [{"text": "DEMO — Delivery apps (DoorDash/Grubhub/Uber Eats) ran 5 orders in June; cooking in for two of those frees about", "impact": "$70/mo"}, {"text": "DEMO — Groceries are drifting up ~8% each month while dining out holds flat — worth a look at what changed in the cart.", "impact": null}, {"text": "Dining rose the most vs the prior month — trimming it back to last month's level would free up about", "impact": "$73/mo"}, {"text": "Largest single merchant this month: BEST BUY #441 at", "impact": "$190"}], "narrativeSource": "includes advisor commentary from this session"}, "recommendations": {"dining": {"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 3.0, "matched": "dining", "runnersUp": [{"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "entertainment": {"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 1.0, "matched": "default", "runnersUp": [{"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "gas": {"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 2.0, "matched": "gas", "runnersUp": [{"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "groceries": {"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 2.0, "matched": "groceries", "runnersUp": [{"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "health": {"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 1.0, "matched": "default", "runnersUp": [{"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "housing": {"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 1.0, "matched": "default", "runnersUp": [{"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "insurance": {"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 1.0, "matched": "default", "runnersUp": [{"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "shopping": {"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 1.0, "matched": "default", "runnersUp": [{"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "subscriptions": {"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 1.0, "matched": "default", "runnersUp": [{"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "transit": {"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 1.0, "matched": "default", "runnersUp": [{"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "travel": {"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 3.0, "matched": "travel", "runnersUp": [{"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}, "utilities": {"cardName": "EXAMPLE — Everyday Cash Back Visa", "rate": 1.0, "matched": "default", "runnersUp": [{"cardName": "EXAMPLE — Travel Rewards Mastercard", "rate": 1.0, "matched": "default"}, {"cardName": "EXAMPLE — Checking Debit", "rate": 0.0, "matched": "default"}], "example": true}}, "bills": {"items": [{"name": "Rent (example)", "category": "housing", "cadence": "monthly", "dueText": "day 1", "paymentMethod": "example-debit", "cardName": "Checking Debit", "amount": 1800.0, "monthlyEquiv": 1800.0}, {"name": "Electric Utility (example)", "category": "utilities", "cadence": "monthly", "dueText": "day 12", "paymentMethod": "example-cash-back", "cardName": "Everyday Cash Back Visa", "amount": 95.0, "monthlyEquiv": 95.0}, {"name": "Internet (example)", "category": "utilities", "cadence": "monthly", "dueText": "day 18", "paymentMethod": "example-cash-back", "cardName": "Everyday Cash Back Visa", "amount": 70.0, "monthlyEquiv": 70.0}, {"name": "Streaming Service (example)", "category": "entertainment", "cadence": "monthly", "dueText": "day 22", "paymentMethod": "example-cash-back", "cardName": "Everyday Cash Back Visa", "amount": 15.49, "monthlyEquiv": 15.49}, {"name": "Car Insurance (example)", "category": "insurance", "cadence": "yearly", "dueText": "Sep 5", "paymentMethod": "example-travel", "cardName": "Travel Rewards Mastercard", "amount": 720.0, "monthlyEquiv": 60.0}], "monthlyTotal": 2040.49, "upcoming": [{"name": "Internet (example)", "amount": 70.0, "cardName": "Everyday Cash Back Visa", "dueIn": 3, "dueDateLabel": "Sat Jul 18", "dueLabel": "in 3d"}, {"name": "Streaming Service (example)", "amount": 15.49, "cardName": "Everyday Cash Back Visa", "dueIn": 7, "dueDateLabel": "Wed Jul 22", "dueLabel": "in 7d"}, {"name": "Rent (example)", "amount": 1800.0, "cardName": "Checking Debit", "dueIn": 17, "dueDateLabel": "Sat Aug 1", "dueLabel": "in 17d"}, {"name": "Electric Utility (example)", "amount": 95.0, "cardName": "Everyday Cash Back Visa", "dueIn": 28, "dueDateLabel": "Wed Aug 12", "dueLabel": "in 28d"}], "dueNext7Total": 85.49, "dueNext7Count": 2, "cashflow": [{"day": 1, "cum": 1800.0, "bills": ["Rent (example)"]}, {"day": 12, "cum": 1895.0, "bills": ["Electric Utility (example)"]}, {"day": 18, "cum": 1965.0, "bills": ["Internet (example)"]}, {"day": 22, "cum": 1980.49, "bills": ["Streaming Service (example)"]}], "todayDay": 15}, "mail": {"fetchedAt": "2026-07-15T09:00:00", "items": [{"subject": "DEMO — Action required: verify your updated lease terms", "from": "Property Management <leasing@example.com>", "age": "1d", "reason": "deadline", "snippet": "Please review and sign the updated lease addendum by July 18.", "actions": [{"type": "task", "title": "Sign lease addendum", "due": "Jul 18", "status": "proposed"}]}, {"subject": "DEMO — Your flight confirmation: UA 212 SFO → JFK", "from": "United Airlines <no-reply@example.com>", "age": "2d", "reason": "travel", "snippet": "Departure Jul 22, 8:40 AM. Check-in opens 24 hours before.", "actions": [{"type": "event", "title": "Flight UA 212 SFO → JFK", "due": "Jul 22 08:40", "status": "pushed"}]}, {"subject": "DEMO — Invoice #4471 due", "from": "Dental Care <billing@example.com>", "age": "3d", "reason": "invoice", "snippet": "Your invoice of $145.00 is due July 25.", "actions": [{"type": "task", "title": "Pay dental invoice #4471 ($145)", "due": "Jul 25", "status": "proposed"}]}]}};
+
+/* ---------- helpers ---------- */
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElement(tag);
+  for (const k in (attrs || {})) {
+    if (k === "text") e.textContent = attrs[k];
+    else if (k === "class") e.className = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  }
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function sv(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in (attrs || {})) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const fmtUSD = n => (n < 0 ? "-" : "") + "$" + Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+const fmtUSDc = n => (n < 0 ? "-" : "") + "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtMonth = m => { const [y, mo] = m.split("-"); return new Date(y, mo - 1, 1).toLocaleDateString("en-US", { month: "short", year: "numeric" }); };
+function niceTicks(max, n) {
+  if (max <= 0) return [0, 1];
+  const raw = max / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s >= raw);
+  const out = []; for (let v = 0; v <= max + step * 0.001; v += step) out.push(v);
+  if (out[out.length - 1] < max) out.push(out[out.length - 1] + step);
+  return out;
+}
+function tooltipFor(card) {
+  const tt = el("div", { class: "viz-tooltip" }, card);
+  return {
+    show(x, y, build) {
+      tt.textContent = "";
+      build(tt);
+      tt.style.display = "block";
+      const r = card.getBoundingClientRect(), tr = tt.getBoundingClientRect();
+      let left = x + 14, top = y + 14;
+      if (left + tr.width > r.width - 8) left = x - tr.width - 14;
+      if (top + tr.height > r.height - 4) top = y - tr.height - 10;
+      tt.style.left = Math.max(4, left) + "px";
+      tt.style.top = Math.max(4, top) + "px";
+    },
+    hide() { tt.style.display = "none"; }
+  };
+}
+function ttRows(tt, title, rows, note) {
+  el("div", { class: "tt-title", text: title }, tt);
+  for (const [val, lbl] of rows) {
+    const r = el("div", { class: "tt-row" }, tt);
+    el("span", { class: "tt-val", text: val }, r);
+    if (lbl) el("span", { class: "tt-lbl", text: lbl }, r);
+  }
+  if (note) el("div", { class: "tt-note", text: note }, tt);
+}
+function cssVar(name) { return getComputedStyle(document.querySelector(".app")).getPropertyValue(name).trim(); }
+
+/* Sequential blue ramp (ordinal-safe bounds per mode). */
+const RAMP_LIGHT = ["#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6", "#256abf", "#1c5cab", "#184f95", "#104281"];
+const RAMP_DARK  = ["#184f95", "#1c5cab", "#256abf", "#2a78d6", "#3987e5", "#5598e7", "#6da7ec", "#86b6ef", "#9ec5f4"];
+function rampColor(t) { // t in [0,1], 1 = largest value = most ink
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches &&
+    document.documentElement.getAttribute("data-theme") !== "light" ||
+    document.documentElement.getAttribute("data-theme") === "dark";
+  const ramp = dark ? RAMP_DARK : RAMP_LIGHT;
+  return ramp[Math.min(ramp.length - 1, Math.round(t * (ramp.length - 1)))];
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("nav.tabs button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b === btn));
+    document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("active", s.id === "tab-" + btn.dataset.tab));
+  });
+});
+document.getElementById("generated-at").textContent =
+  "Generated " + new Date(DATA.generatedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) +
+  (DATA.finance.months.length ? " · statement data through " + fmtMonth(DATA.finance.months[DATA.finance.months.length - 1].month) : "");
+
+/* ================= TAB 1 — FINANCE ================= */
+(function renderFinance() {
+  const root = document.getElementById("tab-finance");
+  const F = DATA.finance;
+
+  if (!F.months.length) {
+    el("div", { class: "empty" }, root).innerHTML =
+      "<b>No statement data yet.</b><br>Drop a CSV into <code>statements/inbox/</code> and run " +
+      "<code>python3 scripts/parse_statement.py</code>, or hand Claude a PDF statement to ingest.";
+    renderRecommender(root);
+    return;
+  }
+
+  const latest = F.months[F.months.length - 1];
+  const prev = F.months.length > 1 ? F.months[F.months.length - 2] : null;
+
+  // KPI row
+  const kpis = el("div", { class: "kpi-row" }, root);
+  function tile(label, value, delta) {
+    const t = el("div", { class: "tile" }, kpis);
+    el("div", { class: "label", text: label }, t);
+    el("div", { class: "value", text: value }, t);
+    if (delta) el("div", { class: "delta " + delta.cls, text: delta.text }, t);
+    return t;
+  }
+  let deltaSpec = null;
+  if (prev && prev.total > 0) {
+    const d = latest.total - prev.total, pct = Math.round(100 * d / prev.total);
+    deltaSpec = { cls: d > 0 ? "bad" : d < 0 ? "good" : "flat", text: (d >= 0 ? "+" : "−") + fmtUSD(Math.abs(d)) + " (" + (pct >= 0 ? "+" : "") + pct + "%) vs " + fmtMonth(prev.month) };
+  }
+  tile("Spend — " + fmtMonth(latest.month), fmtUSD(latest.total), deltaSpec);
+  tile("Top category", latest.topCategory ? latest.topCategory.name : "—",
+    latest.topCategory ? { cls: "flat", text: fmtUSD(latest.topCategory.amount) + " · " + Math.round(100 * latest.topCategory.amount / latest.total) + "% of month" } : null);
+  tile("Transactions", String(latest.txnCount), { cls: "flat", text: F.uncategorized > 0 ? F.uncategorized + " uncategorized" : "all categorized" });
+  tile("Avg monthly spend", fmtUSD(F.avgMonthly), { cls: "flat", text: "across " + F.months.length + " month" + (F.months.length > 1 ? "s" : "") });
+
+  const grid = el("div", { class: "grid-2" }, root);
+
+  // --- Spend by category (horizontal bars, sequential ramp) ---
+  const catCard = el("div", { class: "card" }, grid);
+  el("h2", { text: "Spend by category" }, catCard);
+  el("div", { class: "card-sub", text: fmtMonth(latest.month) + " · hover a bar for detail" }, catCard);
+  (function () {
+    const cats = latest.categories;
+    if (!cats.length) { el("div", { class: "empty", text: "No categorized spend this month." }, catCard); return; }
+    const rowH = 30, barH = 20, labelW = 112, valueW = 64, W = 480;
+    const H = cats.length * rowH + 6;
+    const wrap = el("div", { class: "chart-wrap" }, catCard);
+    const svg = sv("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": "Spend by category bar chart" }, wrap);
+    const maxV = cats[0].amount;
+    const plotW = W - labelW - valueW - 8;
+    const tt = tooltipFor(catCard);
+    cats.forEach((c, i) => {
+      const y = i * rowH + 4;
+      const w = Math.max(2, plotW * c.amount / maxV);
+      const t = cats.length === 1 ? 1 : 1 - i / (cats.length - 1);
+      sv("text", { x: labelW - 8, y: y + barH / 2 + 4, "text-anchor": "end", "font-size": 12, fill: cssVar("--text-secondary") }, svg).textContent = c.name;
+      const r = 4, x0 = labelW;
+      sv("path", {
+        d: `M ${x0} ${y} L ${x0 + w - r} ${y} Q ${x0 + w} ${y} ${x0 + w} ${y + r} L ${x0 + w} ${y + barH - r} Q ${x0 + w} ${y + barH} ${x0 + w - r} ${y + barH} L ${x0} ${y + barH} Z`,
+        fill: rampColor(0.35 + 0.65 * t)
+      }, svg);
+      sv("text", { x: x0 + w + 7, y: y + barH / 2 + 4, "font-size": 12, "font-weight": 600, fill: cssVar("--text-primary") }, svg).textContent = fmtUSD(c.amount);
+      const hit = sv("rect", { x: 0, y: y - 4, width: W, height: rowH, fill: "transparent", tabindex: 0 }, svg);
+      const show = ev => {
+        const cr = catCard.getBoundingClientRect();
+        const px = ev && ev.clientX ? ev.clientX - cr.left : labelW + w;
+        const py = ev && ev.clientY ? ev.clientY - cr.top : y;
+        const rec = DATA.recommendations[c.name];
+        tt.show(px, py, box => ttRows(box, c.name,
+          [[fmtUSDc(c.amount), Math.round(100 * c.amount / latest.total) + "% of month"], [String(c.count), "transactions"]],
+          rec ? "Best card: " + rec.cardName + " (" + rec.rate + "x)" : null));
+      };
+      hit.addEventListener("pointermove", show);
+      hit.addEventListener("focus", show);
+      hit.addEventListener("pointerleave", tt.hide);
+      hit.addEventListener("blur", tt.hide);
+    });
+  })();
+
+  // --- Monthly trend (single-series line) ---
+  const trendCard = el("div", { class: "card" }, grid);
+  el("h2", { text: "Monthly spend trend" }, trendCard);
+  el("div", { class: "card-sub", text: "Total debits per statement month" }, trendCard);
+  (function () {
+    const pts = F.months;
+    if (pts.length < 2) { el("div", { class: "empty", text: "Trends appear once the ledger holds two or more months. Historical statements are retained, so each upload extends this chart." }, trendCard); return; }
+    const W = 480, H = 220, padL = 46, padR = 46, padT = 14, padB = 26;
+    const wrap = el("div", { class: "chart-wrap" }, trendCard);
+    const svg = sv("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": "Monthly spend line chart" }, wrap);
+    const maxV = Math.max(...pts.map(p => p.total));
+    const ticks = niceTicks(maxV, 3);
+    const topV = ticks[ticks.length - 1];
+    const x = i => padL + (W - padL - padR) * (pts.length === 1 ? 0.5 : i / (pts.length - 1));
+    const y = v => padT + (H - padT - padB) * (1 - v / topV);
+    ticks.forEach(v => {
+      sv("line", { x1: padL, x2: W - padR, y1: y(v), y2: y(v), stroke: cssVar("--grid"), "stroke-width": 1 }, svg);
+      sv("text", { x: padL - 7, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: cssVar("--text-muted") }, svg).textContent = v >= 1000 ? (v / 1000) + "K" : String(v);
+    });
+    sv("line", { x1: padL, x2: W - padR, y1: y(0), y2: y(0), stroke: cssVar("--baseline"), "stroke-width": 1 }, svg);
+    pts.forEach((p, i) => {
+      if (pts.length <= 8 || i % Math.ceil(pts.length / 8) === 0 || i === pts.length - 1)
+        sv("text", { x: x(i), y: H - 8, "text-anchor": "middle", "font-size": 11, fill: cssVar("--text-muted") }, svg)
+          .textContent = fmtMonth(p.month).replace(" 20", " ’");
+    });
+    const line = pts.map((p, i) => (i ? "L" : "M") + x(i) + " " + y(p.total)).join(" ");
+    sv("path", { d: line + ` L ${x(pts.length - 1)} ${y(0)} L ${x(0)} ${y(0)} Z`, fill: cssVar("--wash") }, svg);
+    sv("path", { d: line, fill: "none", stroke: cssVar("--series-1"), "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    const li = pts.length - 1;
+    sv("circle", { cx: x(li), cy: y(pts[li].total), r: 6, fill: cssVar("--surface-1") }, svg);
+    sv("circle", { cx: x(li), cy: y(pts[li].total), r: 4, fill: cssVar("--series-1") }, svg);
+    sv("text", { x: x(li) + 9, y: y(pts[li].total) + 4, "font-size": 12, "font-weight": 600, fill: cssVar("--text-primary") }, svg).textContent = fmtUSD(pts[li].total);
+
+    const tt = tooltipFor(trendCard);
+    const cross = sv("line", { y1: padT, y2: H - padB, stroke: cssVar("--baseline"), "stroke-width": 1, visibility: "hidden" }, svg);
+    const overlay = sv("rect", { x: padL, y: 0, width: W - padL - padR, height: H, fill: "transparent" }, svg);
+    overlay.addEventListener("pointermove", ev => {
+      const box = svg.getBoundingClientRect();
+      const sx = (ev.clientX - box.left) * (W / box.width);
+      let best = 0;
+      for (let i = 1; i < pts.length; i++) if (Math.abs(x(i) - sx) < Math.abs(x(best) - sx)) best = i;
+      cross.setAttribute("x1", x(best)); cross.setAttribute("x2", x(best));
+      cross.setAttribute("visibility", "visible");
+      const cr = trendCard.getBoundingClientRect();
+      const p = pts[best], pp = best > 0 ? pts[best - 1] : null;
+      tt.show(ev.clientX - cr.left, ev.clientY - cr.top, box2 => ttRows(box2, fmtMonth(p.month),
+        [[fmtUSDc(p.total), "total spend"]],
+        pp ? (p.total >= pp.total ? "+" : "−") + fmtUSD(Math.abs(p.total - pp.total)) + " vs prior month" : null));
+    });
+    overlay.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); tt.hide(); });
+  })();
+
+  // --- Insights ---
+  const insCard = el("div", { class: "card" }, root);
+  el("h2", { text: "Insights" }, insCard);
+  el("div", { class: "card-sub", text: "Pattern call-outs from the ledger" + (DATA.finance.narrativeSource ? " · " + DATA.finance.narrativeSource : "") }, insCard);
+  if (F.insights.length) {
+    const ul = el("ul", { class: "insights" }, insCard);
+    F.insights.forEach(ins => {
+      const li = el("li", {}, ul);
+      el("span", { class: "dot" }, li);
+      const span = el("span", {}, li);
+      span.appendChild(document.createTextNode(ins.text + (ins.impact ? " " : "")));
+      if (ins.impact) el("span", { class: "impact", text: ins.impact }, span);
+    });
+  } else {
+    el("div", { class: "empty", text: "Not enough data for insights yet — they sharpen as the ledger grows." }, insCard);
+  }
+
+  renderRecommender(root);
+})();
+
+function renderRecommender(root) {
+  const recCard = el("div", { class: "card" }, root);
+  el("h2", { text: "Which card should I use?" }, recCard);
+  el("div", { class: "card-sub", text: "Recommendation from your card roster’s reward categories — informational, not financial advice" }, recCard);
+  const cats = Object.keys(DATA.recommendations).sort();
+  if (!cats.length) {
+    el("div", { class: "empty" }, recCard).innerHTML = "<b>No cards on file.</b><br>Fill in <code>data/cards.json</code> with your roster and rebuild.";
+    return;
+  }
+  const row = el("div", { class: "rec-row" }, recCard);
+  el("label", { for: "rec-select", text: "Spending category:" }, row);
+  const sel = el("select", { id: "rec-select" }, row);
+  cats.forEach(c => el("option", { value: c, text: c }, sel));
+  const result = el("div", { class: "rec-result" }, recCard);
+  function update() {
+    const rec = DATA.recommendations[sel.value];
+    result.textContent = "";
+    const main = el("div", {}, result);
+    el("span", { class: "rec-card-name", text: rec.cardName }, main);
+    el("span", { class: "rec-rate", text: "  ·  " + rec.rate + "x on " + (rec.matched === "default" ? "everything (no category bonus)" : sel.value) }, main);
+    if (rec.runnersUp && rec.runnersUp.length)
+      el("div", { class: "rec-runners", text: "Runner-up: " + rec.runnersUp.map(r => r.cardName + " (" + r.rate + "x)").join(" · ") }, result);
+    if (rec.example) el("div", { class: "rec-runners", text: "⚠ Roster still contains example cards — replace data/cards.json with your real cards." }, result);
+  }
+  sel.addEventListener("change", update);
+  update();
+}
+
+/* ================= TAB 2 — BILLS ================= */
+(function renderBills() {
+  const root = document.getElementById("tab-bills");
+  const B = DATA.bills;
+  if (!B.items.length) {
+    el("div", { class: "empty" }, root).innerHTML = "<b>No recurring bills on file.</b><br>Add them to <code>data/bills.json</code> and rebuild.";
+    return;
+  }
+
+  const kpis = el("div", { class: "kpi-row" }, root);
+  function tile(label, value, sub) {
+    const t = el("div", { class: "tile" }, kpis);
+    el("div", { class: "label", text: label }, t);
+    el("div", { class: "value", text: value }, t);
+    if (sub) el("div", { class: "delta flat", text: sub }, t);
+  }
+  tile("Recurring / month", fmtUSD(B.monthlyTotal), B.items.length + " bills & subscriptions");
+  const next = B.upcoming[0];
+  tile("Next due", next ? next.name : "—", next ? fmtUSDc(next.amount) + " · " + next.dueLabel : "");
+  tile("Due in next 7 days", fmtUSD(B.dueNext7Total), B.dueNext7Count + " item" + (B.dueNext7Count === 1 ? "" : "s"));
+
+  const grid = el("div", { class: "grid-2" }, root);
+
+  // Upcoming timeline
+  const upCard = el("div", { class: "card" }, grid);
+  el("h2", { text: "Coming up" }, upCard);
+  el("div", { class: "card-sub", text: "Next 30 days, soonest first" }, upCard);
+  if (!B.upcoming.length) el("div", { class: "empty", text: "Nothing due in the next 30 days." }, upCard);
+  B.upcoming.forEach(u => {
+    const row = el("div", { class: "bill-row" }, upCard);
+    el("div", { class: "bill-when", text: u.dueDateLabel }, row);
+    el("div", { class: "bill-name", text: u.name }, row);
+    if (u.cardName) el("div", { class: "bill-card-chip", text: u.cardName }, row);
+    el("div", { class: "bill-amount", text: fmtUSDc(u.amount) }, row);
+    const cls = u.dueIn <= 3 ? "critical" : u.dueIn <= 7 ? "warning" : "good";
+    const badge = el("div", { class: "badge " + cls }, row);
+    el("span", { class: "b-ic", text: "●" }, badge);
+    el("span", { text: u.dueLabel }, badge);
+  });
+
+  // Cash-flow impact
+  const cfCard = el("div", { class: "card" }, grid);
+  el("h2", { text: "Cash-flow impact" }, cfCard);
+  el("div", { class: "card-sub", text: "Cumulative recurring outflow through the month · hover for the bills behind each step" }, cfCard);
+  (function () {
+    const days = B.cashflow;
+    const W = 480, H = 220, padL = 50, padR = 16, padT = 14, padB = 26;
+    const wrap = el("div", { class: "chart-wrap" }, cfCard);
+    const svg = sv("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": "Cumulative monthly recurring outflow" }, wrap);
+    const maxV = days[days.length - 1].cum || 1;
+    const ticks = niceTicks(maxV, 3);
+    const topV = ticks[ticks.length - 1];
+    const x = d => padL + (W - padL - padR) * ((d - 1) / 30);
+    const y = v => padT + (H - padT - padB) * (1 - v / topV);
+    ticks.forEach(v => {
+      sv("line", { x1: padL, x2: W - padR, y1: y(v), y2: y(v), stroke: cssVar("--grid"), "stroke-width": 1 }, svg);
+      sv("text", { x: padL - 7, y: y(v) + 4, "text-anchor": "end", "font-size": 11, fill: cssVar("--text-muted") }, svg).textContent = v >= 1000 ? (v / 1000).toLocaleString() + "K" : String(v);
+    });
+    sv("line", { x1: padL, x2: W - padR, y1: y(0), y2: y(0), stroke: cssVar("--baseline"), "stroke-width": 1 }, svg);
+    [1, 8, 15, 22, 29].forEach(d => {
+      sv("text", { x: x(d), y: H - 8, "text-anchor": "middle", "font-size": 11, fill: cssVar("--text-muted") }, svg).textContent = "day " + d;
+    });
+    let dpath = "";
+    days.forEach((pt, i) => {
+      const px = x(pt.day), py = y(pt.cum);
+      if (i === 0) dpath = `M ${px} ${y(days[0].cum ? 0 : 0)} L ${px} ${py}`;
+      else dpath += ` L ${px} ${y(days[i - 1].cum)} L ${px} ${py}`; // step
+    });
+    dpath = "M " + x(1) + " " + y(0) + days.map((pt, i) => ` L ${x(pt.day)} ${y(i ? days[i - 1].cum : 0)} L ${x(pt.day)} ${y(pt.cum)}`).join("") + ` L ${x(31)} ${y(days[days.length - 1].cum)}`;
+    sv("path", { d: dpath + ` L ${x(31)} ${y(0)} Z`, fill: cssVar("--wash") }, svg);
+    sv("path", { d: dpath, fill: "none", stroke: cssVar("--series-1"), "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+    if (B.todayDay >= 1 && B.todayDay <= 31) {
+      sv("line", { x1: x(B.todayDay), x2: x(B.todayDay), y1: padT, y2: H - padB, stroke: cssVar("--baseline"), "stroke-width": 1 }, svg);
+      sv("text", { x: x(B.todayDay) + 4, y: padT + 10, "font-size": 10, fill: cssVar("--text-muted") }, svg).textContent = "today";
+    }
+    sv("text", { x: x(31) - 4, y: y(days[days.length - 1].cum) - 8, "text-anchor": "end", "font-size": 12, "font-weight": 600, fill: cssVar("--text-primary") }, svg)
+      .textContent = fmtUSD(days[days.length - 1].cum) + " by month-end";
+
+    const tt = tooltipFor(cfCard);
+    const cross = sv("line", { y1: padT, y2: H - padB, stroke: cssVar("--baseline"), "stroke-width": 1, visibility: "hidden" }, svg);
+    const overlay = sv("rect", { x: padL, y: 0, width: W - padL - padR, height: H, fill: "transparent" }, svg);
+    overlay.addEventListener("pointermove", ev => {
+      const box = svg.getBoundingClientRect();
+      const sx = (ev.clientX - box.left) * (W / box.width);
+      const day = Math.max(1, Math.min(31, Math.round(1 + 30 * (sx - padL) / (W - padL - padR))));
+      cross.setAttribute("x1", x(day)); cross.setAttribute("x2", x(day));
+      cross.setAttribute("visibility", "visible");
+      let cum = 0, dueToday = [];
+      for (const pt of days) { if (pt.day <= day) cum = pt.cum; if (pt.day === day) dueToday = pt.bills; }
+      const cr = cfCard.getBoundingClientRect();
+      tt.show(ev.clientX - cr.left, ev.clientY - cr.top, box2 => ttRows(box2, "By day " + day,
+        [[fmtUSDc(cum), "recurring outflow so far"]],
+        dueToday.length ? "Due day " + day + ": " + dueToday.join(", ") : null));
+    });
+    overlay.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); tt.hide(); });
+  })();
+
+  // Full table
+  const tblCard = el("div", { class: "card" }, root);
+  el("h2", { text: "All recurring charges" }, tblCard);
+  el("div", { class: "card-sub", text: "Source of truth: data/bills.json · assigned cards come from the Tab 1 roster" }, tblCard);
+  const scroll = el("div", { class: "table-scroll" }, tblCard);
+  const tbl = el("table", { class: "data" }, scroll);
+  const thead = el("thead", {}, tbl); const hr = el("tr", {}, thead);
+  ["Name", "Category", "Cadence", "Due", "Paid with", "Amount", "Monthly equiv."].forEach((h, i) =>
+    el("th", { text: h, class: i >= 5 ? "num" : "" }, hr));
+  const tbody = el("tbody", {}, tbl);
+  B.items.forEach(b => {
+    const tr = el("tr", {}, tbody);
+    el("td", { text: b.name }, tr);
+    el("td", { text: b.category || "—" }, tr);
+    el("td", { text: b.cadence }, tr);
+    el("td", { text: b.dueText }, tr);
+    el("td", { text: b.cardName || b.paymentMethod || "—" }, tr);
+    el("td", { text: fmtUSDc(b.amount), class: "num" }, tr);
+    el("td", { text: fmtUSDc(b.monthlyEquiv), class: "num" }, tr);
+  });
+})();
+
+/* ================= TAB 3 — MAIL ================= */
+(function renderMail() {
+  const root = document.getElementById("tab-mail");
+  const M = DATA.mail;
+  const card = el("div", { class: "card" }, root);
+  el("h2", { text: "Triage queue" }, card);
+  el("div", { class: "card-sub", text: M.fetchedAt ? "Fetched live from Gmail " + new Date(M.fetchedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "Populated by a live Gmail search each session" }, card);
+  if (!M.items.length) {
+    el("div", { class: "empty" }, card).innerHTML =
+      "<b>No triage data in this build.</b><br>Ask Claude to “refresh the dashboard” — it runs the live Gmail search defined in " +
+      "<code>data/email-rules.json</code>, writes <code>session/triage.json</code>, and rebuilds. Nothing in your mailbox is modified.";
+    return;
+  }
+  M.items.forEach(m => {
+    const item = el("div", { class: "mail-item" }, card);
+    const top = el("div", { class: "mail-top" }, item);
+    el("span", { class: "mail-subject", text: m.subject }, top);
+    el("span", { class: "mail-meta", text: m.from + (m.age ? " · " + m.age : "") }, top);
+    if (m.reason) el("span", { class: "mail-reason", text: m.reason }, top);
+    if (m.snippet) el("div", { class: "mail-meta", text: m.snippet }, item);
+    if (m.actions && m.actions.length) {
+      const acts = el("div", { class: "mail-actions" }, item);
+      m.actions.forEach(a => {
+        const r = el("div", {}, acts);
+        r.appendChild(document.createTextNode((a.type === "event" ? "📅 " : "☑ ") + a.title + (a.due ? " — " + a.due : "") + "  "));
+        el("span", { class: "act-status" + (a.status === "pushed" ? " pushed" : ""), text: a.status === "pushed" ? "✓ on calendar" : "proposed — awaiting your OK" }, r);
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>
